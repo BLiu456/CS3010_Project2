@@ -17,10 +17,11 @@ using namespace std;
 //Function Prototypes here
 void getUserInput(vector<vector<double>>&, vector<double>&, int);
 bool getFileInput(vector<vector<double>>&, vector<double>&, int);
-//void checkDiagDom();
+bool checkDiagDom(vector<vector<double>>);
+bool convertDiagDom(vector<vector<double>>&);
 //vector<double> jacobiMethod();
 //vector<double> gaussSeidel();
-void printVector(vector<double>);
+void printVector(vector<vector<double>>);
 void printMatrix(vector<vector<double>>, vector<double>);
 
 int main()
@@ -50,7 +51,7 @@ int main()
         }
         else if (menuOp == 2)
         {
-            bool fileObtain = getFileInput();
+            bool fileObtain = getFileInput(coef, bVals, numE);
 
             if (!fileObtain)
             {
@@ -80,6 +81,19 @@ int main()
         startSolution.push_back(temp);
     }
 
+    printVector(coef);
+    cout << endl;
+    if (!checkDiagDom(coef))
+    {
+        if (convertDiagDom(coef))
+        {
+            cout << "Your coefficients were rearranged to be diagonally dominant." << endl;
+        }
+        else
+        {
+            cout << "Your system of linear euqations could not be rearranged to be diagonally dominant. Results may not be accurate because of this." << endl;
+        }
+    }
 }
 
 void getUserInput(vector<vector<double>>& coef, vector<double>& bVals, int numE)
@@ -106,6 +120,15 @@ void getUserInput(vector<vector<double>>& coef, vector<double>& bVals, int numE)
 
             tempVect.push_back(stod(holder));
         }
+
+        if (tempVect.size() != numE)
+        {
+            for (int j = tempVect.size(); j < numE; j++)
+            {
+                tempVect.push_back(0);
+            }
+        }
+
         coef.push_back(tempVect);
     }
 }
@@ -141,6 +164,15 @@ bool getFileInput(vector<vector<double>>& coef, vector<double>& bVals, int numE)
 
             tempVect.push_back(stod(holder));
         }
+
+        if (tempVect.size() != numE)
+        {
+            for (int j = tempVect.size(); j < numE; j++)
+            {
+                tempVect.push_back(0);
+            }
+        }
+
         coef.push_back(tempVect);
     }
 
@@ -149,13 +181,94 @@ bool getFileInput(vector<vector<double>>& coef, vector<double>& bVals, int numE)
     matFile.close();
     return true;
 }
-void printVector(vector<double> v)
+
+bool checkDiagDom(vector<vector<double>> coef)
+{
+    double sum;
+    for (int i = 0; i < coef.size(); i++)
+    {
+        sum = 0.0;
+        for (int j = 0; j < coef.at(i).size(); j++)
+        {
+            if (j == i)
+            {
+                continue;
+            }
+
+            sum += abs(coef.at(i).at(j));
+        }
+
+        if (coef.at(i).at(i) < sum)
+        {
+            //Not strictly diagonly dominant
+            return false;
+        }
+    }
+    //At this point all rows were checked, and have satisfied the condition of being diagonally dominant
+    return true;
+}
+
+bool convertDiagDom(vector<vector<double>>& coef)
+{
+    //Matrix m will be a copy of coef matrix. Will need to keep original matrix until program can confirm it is possible to convert it to diagonally dominant.
+    vector<vector<double>> m(coef); 
+    //rowIndex is used to keep track of which row should be at which index to make the matrix diagonally dominant
+    vector<int> rowIndex(m.size(), -1); //-1 is used as a flag to make sure a spot is available at a certain index
+    double rowMax, sum;
+    int indexMax;
+
+    for (int i = 0; i < m.size(); i++)
+    {
+        sum = 0.0;
+        rowMax = 0.0;
+        indexMax = 0;
+        for (int j = 0; j < m.at(i).size(); j++)
+        {
+            if (abs(m.at(i).at(j)) > rowMax)
+            {
+                rowMax = abs(m.at(i).at(j));
+                indexMax = j;
+            }
+            sum += abs(m.at(i).at(j));
+        }
+
+        sum -= rowMax; //Subtract the rowMax from the sum so that it is actually comparing the sum of everything else in that row with the rowMax.
+        if (sum < rowMax)
+        {
+            if (rowIndex.at(indexMax) == -1) //If there is a -1 then it means that this index is available to have a value stored in it.
+            {
+                rowIndex.at(indexMax) = i; 
+            }
+            else
+            {
+                //Two rows will need to occupy the same spot for the matrix to become diagonally dominant, so it is not possible to convert the matrix.
+                return false;
+            }
+        }
+        else
+        {
+            return false;
+        }
+    }
+   
+    for (int i = 0; i < rowIndex.size(); i++) //Swapping the rows based on rowIndex
+    {
+        coef.at(i) = m.at(rowIndex.at(i));
+    }
+
+    return true;
+}
+
+void printVector(vector<vector<double>> v)
 {
     for (int i = 0; i < v.size(); i++)
     {
-        cout << v.at(i) << " ";
+        for (int j = 0; j < v.at(i).size(); j++)
+        {
+            cout << v.at(i).at(j) << " ";
+        }
+        cout << endl;
     }
-    cout << endl;
 }
 
 void printMatrix(vector<vector<double>> m, vector<double> n)
@@ -169,3 +282,4 @@ void printMatrix(vector<vector<double>> m, vector<double> n)
         cout << n.at(i) << endl;
     }
 }
+
