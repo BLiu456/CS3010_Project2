@@ -18,10 +18,10 @@ using namespace std;
 void getUserInput(vector<vector<double>>&, vector<double>&, int);
 bool getFileInput(vector<vector<double>>&, vector<double>&, int);
 bool checkDiagDom(vector<vector<double>>);
-bool convertDiagDom(vector<vector<double>>&);
-//vector<double> jacobiMethod();
+bool convertDiagDom(vector<vector<double>>&, vector<double>&);
+void jacobiMethod(vector<vector<double>>, vector<double>, vector<double>, double);
 //vector<double> gaussSeidel();
-void printVector(vector<vector<double>>);
+void printVector(vector<double>);
 void printMatrix(vector<vector<double>>, vector<double>);
 
 int main()
@@ -31,7 +31,6 @@ int main()
     vector<vector<double>> coef;
     vector<double> bVals;
     vector<double> startSolution;
-    vector<double> answers;
 
     cout << "Enter the number of linear equations to solve: ";
     cin >> numE;
@@ -81,11 +80,9 @@ int main()
         startSolution.push_back(temp);
     }
 
-    printVector(coef);
-    cout << endl;
     if (!checkDiagDom(coef))
     {
-        if (convertDiagDom(coef))
+        if (convertDiagDom(coef, bVals))
         {
             cout << "Your coefficients were rearranged to be diagonally dominant." << endl;
         }
@@ -94,6 +91,8 @@ int main()
             cout << "Your system of linear euqations could not be rearranged to be diagonally dominant. Results may not be accurate because of this." << endl;
         }
     }
+
+    jacobiMethod(coef, bVals, startSolution, stopErr);
 }
 
 void getUserInput(vector<vector<double>>& coef, vector<double>& bVals, int numE)
@@ -103,7 +102,7 @@ void getUserInput(vector<vector<double>>& coef, vector<double>& bVals, int numE)
     cin.clear();
     cin.ignore(INT_MAX, '\n');
 
-    cout << "Enter the coefficients and b values of the equations row by row:\n";
+    cout << "\nEnter the coefficients and b values of the equations row by row:\n";
     for (int i = 0; i < numE; i++)
     {
         getline(cin, rowInput);
@@ -137,7 +136,7 @@ bool getFileInput(vector<vector<double>>& coef, vector<double>& bVals, int numE)
 {
     string filename = "", rowInput = "", holder = "";
     
-    cout << "Enter file name: ";
+    cout << "\nEnter file name: ";
     cin >> filename;
 
     ifstream matFile;
@@ -208,10 +207,11 @@ bool checkDiagDom(vector<vector<double>> coef)
     return true;
 }
 
-bool convertDiagDom(vector<vector<double>>& coef)
+bool convertDiagDom(vector<vector<double>>& coef, vector<double>& bVals)
 {
     //Matrix m will be a copy of coef matrix. Will need to keep original matrix until program can confirm it is possible to convert it to diagonally dominant.
     vector<vector<double>> m(coef); 
+    vector<double> b(bVals);
     //rowIndex is used to keep track of which row should be at which index to make the matrix diagonally dominant
     vector<int> rowIndex(m.size(), -1); //-1 is used as a flag to make sure a spot is available at a certain index
     double rowMax, sum;
@@ -254,21 +254,69 @@ bool convertDiagDom(vector<vector<double>>& coef)
     for (int i = 0; i < rowIndex.size(); i++) //Swapping the rows based on rowIndex
     {
         coef.at(i) = m.at(rowIndex.at(i));
+        bVals.at(i) = b.at(rowIndex.at(i));
     }
 
     return true;
 }
 
-void printVector(vector<vector<double>> v)
+void jacobiMethod(vector<vector<double>> coef, vector<double> bVals, vector<double> startSolution, double err)
 {
-    for (int i = 0; i < v.size(); i++)
+    double sum1 = 0.0, diag;
+    double lsum1 = 0.0, lsum2 = 0.0, l2;
+    vector<double> xVect(startSolution), yVect;
+
+    for (int k = 0; k < 50; k++)
     {
-        for (int j = 0; j < v.at(i).size(); j++)
+        yVect = xVect;
+        for (int i = 0; i < coef.size(); i++)
         {
-            cout << v.at(i).at(j) << " ";
+            diag = coef.at(i).at(i);
+            sum1 = bVals.at(i);
+            for (int j = 0; j < coef.at(i).size(); j++)
+            {
+                if (j != i)
+                {
+                    sum1 -= coef.at(i).at(j) * yVect.at(j);
+                }
+            }
+            xVect.at(i) = sum1 / diag;
         }
-        cout << endl;
+ 
+        //Calculating L2 normal form
+        lsum1 = 0.0;
+        lsum2 = 0.0;
+        for (int i = 0; i < xVect.size(); i++)
+        {
+            lsum1 += pow(xVect.at(i) - yVect.at(i), 2);
+            lsum2 += pow(xVect.at(i), 2);
+        }
+        l2 = sqrt(lsum1) / sqrt(lsum2);
+
+        if (l2 < err)
+        {
+            //The method has converged
+            cout << "Jaccobi's method converged on iteration " << k + 1 << ". Approximate solution is x(" << k + 1 << ") = [";
+            printVector(xVect);
+            cout << "]" << endl;
+            return;
+        }
+
+        //Display the xVect at current iteration
+        cout << "Iteration " << k + 1 << ": x(" << k + 1 << ") = [";
+        printVector(xVect);
+        cout << "]  l2 = " << l2 << endl;
     }
+    cout << "Maximum iterations has been reached." << endl;
+}
+
+void printVector(vector<double> v)
+{
+    for (int i = 0; i < v.size() - 1; i++)
+    {
+        cout << v.at(i) << ", ";
+    }
+    cout << v.at(v.size() - 1);
 }
 
 void printMatrix(vector<vector<double>> m, vector<double> n)
@@ -282,4 +330,3 @@ void printMatrix(vector<vector<double>> m, vector<double> n)
         cout << n.at(i) << endl;
     }
 }
-
