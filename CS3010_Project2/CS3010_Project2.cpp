@@ -20,7 +20,7 @@ bool getFileInput(vector<vector<double>>&, vector<double>&, int);
 bool checkDiagDom(vector<vector<double>>);
 bool convertDiagDom(vector<vector<double>>&, vector<double>&);
 void jacobiMethod(vector<vector<double>>, vector<double>, vector<double>, double);
-//vector<double> gaussSeidel();
+void gaussSeidel(vector<vector<double>>, vector<double>, vector<double>, double);
 void printVector(vector<double>);
 void printMatrix(vector<vector<double>>, vector<double>);
 
@@ -92,7 +92,10 @@ int main()
         }
     }
 
+    cout << "\nSolving with Jacobi's Method:\n";
     jacobiMethod(coef, bVals, startSolution, stopErr);
+    cout << "\nSolving with Gauss Seidel:\n";
+    gaussSeidel(coef, bVals, startSolution, stopErr);
 }
 
 void getUserInput(vector<vector<double>>& coef, vector<double>& bVals, int numE)
@@ -237,7 +240,7 @@ bool convertDiagDom(vector<vector<double>>& coef, vector<double>& bVals)
         {
             if (rowIndex.at(indexMax) == -1) //If there is a -1 then it means that this index is available to have a value stored in it.
             {
-                rowIndex.at(indexMax) = i; 
+                rowIndex.at(indexMax) = i;
             }
             else
             {
@@ -250,7 +253,7 @@ bool convertDiagDom(vector<vector<double>>& coef, vector<double>& bVals)
             return false;
         }
     }
-   
+
     for (int i = 0; i < rowIndex.size(); i++) //Swapping the rows based on rowIndex
     {
         coef.at(i) = m.at(rowIndex.at(i));
@@ -262,7 +265,7 @@ bool convertDiagDom(vector<vector<double>>& coef, vector<double>& bVals)
 
 void jacobiMethod(vector<vector<double>> coef, vector<double> bVals, vector<double> startSolution, double err)
 {
-    double sum1 = 0.0, diag;
+    double sum = 0.0, diag;
     double lsum1 = 0.0, lsum2 = 0.0, l2;
     vector<double> xVect(startSolution), yVect;
 
@@ -272,17 +275,17 @@ void jacobiMethod(vector<vector<double>> coef, vector<double> bVals, vector<doub
         for (int i = 0; i < coef.size(); i++)
         {
             diag = coef.at(i).at(i);
-            sum1 = bVals.at(i);
+            sum = bVals.at(i);
             for (int j = 0; j < coef.at(i).size(); j++)
             {
                 if (j != i)
                 {
-                    sum1 -= coef.at(i).at(j) * yVect.at(j);
+                    sum -= coef.at(i).at(j) * yVect.at(j);
                 }
             }
-            xVect.at(i) = sum1 / diag;
+            xVect.at(i) = sum / diag;
         }
- 
+
         //Calculating L2 normal form
         lsum1 = 0.0;
         lsum2 = 0.0;
@@ -296,18 +299,74 @@ void jacobiMethod(vector<vector<double>> coef, vector<double> bVals, vector<doub
         if (l2 < err)
         {
             //The method has converged
-            cout << "Jaccobi's method converged on iteration " << k + 1 << ". Approximate solution is x(" << k + 1 << ") = [";
+            cout << "Jaccobi's method converged on iteration " << k + 1 << ". Approximate solution is x = [";
             printVector(xVect);
-            cout << "]" << endl;
+            cout << "]  ";
+            cout << "Error value is: " << l2 << endl;
             return;
         }
 
         //Display the xVect at current iteration
-        cout << "Iteration " << k + 1 << ": x(" << k + 1 << ") = [";
+        cout << "Iteration " << k + 1 << ": x = [";
         printVector(xVect);
-        cout << "]  l2 = " << l2 << endl;
+        cout << "]  ";
+        cout << "Error value is: " << l2 << endl;
     }
-    cout << "Maximum iterations has been reached." << endl;
+    cout << "Maximum iterations has been reached. Refer to iteration 50 for final result" << endl;
+}
+
+void gaussSeidel(vector<vector<double>> coef, vector<double> bVals, vector<double> startSolution, double err)
+{
+    double sum = 0.0, diag;
+    double lsum1 = 0.0, lsum2 = 0.0, l2;
+    vector<double> xVect(startSolution), yVect;
+
+    for (int k = 0; k < 50; k++)
+    {
+        yVect = xVect; //yVect here will be used to remember what the xVect was in the previous iteration so we can calculate the l2.
+        for (int i = 0; i < coef.size(); i++)
+        {
+            diag = coef.at(i).at(i);
+            sum = bVals.at(i);
+            for (int j = 0; j < i; j++)
+            {
+                sum -= coef.at(i).at(j) * xVect.at(j);
+            }
+
+            for (int j = i + 1; j < coef.at(i).size(); j++)
+            {
+                sum -= coef.at(i).at(j) * xVect.at(j);
+            }
+            xVect.at(i) = sum / diag;
+        }
+
+        //Calculating L2 normal form
+        lsum1 = 0.0;
+        lsum2 = 0.0;
+        for (int i = 0; i < xVect.size(); i++)
+        {
+            lsum1 += pow(xVect.at(i) - yVect.at(i), 2);
+            lsum2 += pow(xVect.at(i), 2);
+        }
+        l2 = sqrt(lsum1) / sqrt(lsum2);
+
+        if (l2 < err)
+        {
+            //The method has converged
+            cout << "Gauss Seidel converged on iteration " << k + 1 << ". Approximate solution is x = [";
+            printVector(xVect);
+            cout << "]  ";
+            cout << "Error value is: " << l2 << endl;
+            return;
+        }
+
+        //Display the xVect at current iteration
+        cout << "Iteration " << k + 1 << ": x = [";
+        printVector(xVect);
+        cout << "]  ";
+        cout << "Error value is : " << l2 << endl;
+    }
+    cout << "Maximum iterations has been reached. Refer to iteration 50 for final result" << endl;
 }
 
 void printVector(vector<double> v)
