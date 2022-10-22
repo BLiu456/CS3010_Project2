@@ -4,6 +4,7 @@ Class: CS3010
 Assignment: Programming Project 2 
 Due Date: 10/23/2022
 Coded in C++ with Visual Studios 2022
+Note: Due to how deciamal values are represented, the answers may not be as exact or may get rounded off. So the methods may take a couple more iterations to converge, or will display a few extra decimal values.
 */
 
 #include <iostream>
@@ -35,7 +36,7 @@ int main()
     cout << "Enter the number of linear equations to solve: ";
     cin >> numE;
 
-    while (true)
+    while (true) //Keep looping until the user enters a valid option
     {
         cout << "\nChoose from the following options:\n"
             "1. Enter numbers manually from command line\n"
@@ -52,19 +53,19 @@ int main()
         {
             bool fileObtain = getFileInput(coef, bVals, numE);
 
-            if (!fileObtain)
+            if (!fileObtain) //If file could not be open, end program
             {
                 return 0;
             }
             break;
-        }
-        else if (!cin)
+        } 
+        else if (!cin) //When the user does any string values (non-numeric), which is invalid
         {
             cout << "Invalid option. Please enter a 1 or 2.\n";
             cin.clear();
             cin.ignore(INT_MAX, '\n');
         }
-        else
+        else 
         {
             cout << "Invalid option. Please enter a 1 or 2.\n";
         }
@@ -79,25 +80,25 @@ int main()
         cin >> temp;
         startSolution.push_back(temp);
     }
-
+    //Make sure matrix is diagonally dominant
     if (!checkDiagDom(coef))
     {
-        if (convertDiagDom(coef, bVals))
+        if (convertDiagDom(coef, bVals)) //If not diagonally dominant, attempt to rearrange it and let the user know
         {
             cout << "Your coefficients were rearranged to be diagonally dominant." << endl;
         }
-        else
+        else //Matrix could not be be rearranged to be diagonally dominant. Let the user know. The program will still continue but results may vary.
         {
             cout << "Your system of linear euqations could not be rearranged to be diagonally dominant. Results may not be accurate because of this." << endl;
         }
     }
-
+ 
     cout << "\nSolving with Jacobi's Method:\n";
     jacobiMethod(coef, bVals, startSolution, stopErr);
     cout << "\nSolving with Gauss Seidel:\n";
     gaussSeidel(coef, bVals, startSolution, stopErr);
 }
-
+/*Algorithm is similar to the one used in project 1 to get user input*/
 void getUserInput(vector<vector<double>>& coef, vector<double>& bVals, int numE)
 {
     string rowInput = "", holder = "";
@@ -108,13 +109,13 @@ void getUserInput(vector<vector<double>>& coef, vector<double>& bVals, int numE)
     cout << "\nEnter the coefficients and b values of the equations row by row:\n";
     for (int i = 0; i < numE; i++)
     {
-        getline(cin, rowInput);
+        getline(cin, rowInput); //Gets whole row
         istringstream ss(rowInput);
 
         vector<double> tempVect;
-        while (ss >> holder)
+        while (ss >> holder) //Get values individually
         {
-            if (ss.eof())
+            if (ss.eof()) //Last value of row should be b value
             {
                 bVals.push_back(stod(holder));
                 continue;
@@ -134,7 +135,7 @@ void getUserInput(vector<vector<double>>& coef, vector<double>& bVals, int numE)
         coef.push_back(tempVect);
     }
 }
-
+/*Algorithm is similar to the one used in project 1 to get file input*/
 bool getFileInput(vector<vector<double>>& coef, vector<double>& bVals, int numE)
 {
     string filename = "", rowInput = "", holder = "";
@@ -178,12 +179,13 @@ bool getFileInput(vector<vector<double>>& coef, vector<double>& bVals, int numE)
         coef.push_back(tempVect);
     }
 
+    //Display contents of file so user can confirm it is correct
     cout << "Contents of " << filename << ":" << endl;
     printMatrix(coef, bVals);
     matFile.close();
     return true;
 }
-
+/*Returns a boolean value depending if if the matrix is diagonally dominant*/
 bool checkDiagDom(vector<vector<double>> coef)
 {
     double sum;
@@ -210,6 +212,10 @@ bool checkDiagDom(vector<vector<double>> coef)
     return true;
 }
 
+/*Attempts to rearrange the matrix to be diagonally dominant. This algorithm does this by finding the max of a row and the compares that to the sum of the values of the rest
+of the row. Depending on the index of the max, the row will be moved so the row number matches the index. As long as no two rows needs to be in the same row number
+it is possible to rearrange the matrix. A matrix cannot be rearranged if two rows needs to be moved to the same row number, or if the max of a row is less than the sum of the other values.
+This function will return a boolean depending on if it was possible to rearrange the matrix.*/
 bool convertDiagDom(vector<vector<double>>& coef, vector<double>& bVals)
 {
     //Matrix m will be a copy of coef matrix. Will need to keep original matrix until program can confirm it is possible to convert it to diagonally dominant.
@@ -227,12 +233,12 @@ bool convertDiagDom(vector<vector<double>>& coef, vector<double>& bVals)
         indexMax = 0;
         for (int j = 0; j < m.at(i).size(); j++)
         {
-            if (abs(m.at(i).at(j)) > rowMax)
+            if (abs(m.at(i).at(j)) > rowMax) //Finding the rowMax
             {
                 rowMax = abs(m.at(i).at(j));
                 indexMax = j;
             }
-            sum += abs(m.at(i).at(j));
+            sum += abs(m.at(i).at(j)); 
         }
 
         sum -= rowMax; //Subtract the rowMax from the sum so that it is actually comparing the sum of everything else in that row with the rowMax.
@@ -262,19 +268,19 @@ bool convertDiagDom(vector<vector<double>>& coef, vector<double>& bVals)
 
     return true;
 }
-
+/*Uses algorithm provided by the textbook.*/
 void jacobiMethod(vector<vector<double>> coef, vector<double> bVals, vector<double> startSolution, double err)
 {
     double sum = 0.0, diag;
     double lsum1 = 0.0, lsum2 = 0.0, l2;
     vector<double> xVect(startSolution), yVect;
 
-    for (int k = 0; k < 50; k++)
+    for (int k = 0; k < 50; k++) //Only allowing a max of 50 iterations
     {
-        yVect = xVect;
+        yVect = xVect; //yVect holds the previous iteration
         for (int i = 0; i < coef.size(); i++)
-        {
-            diag = coef.at(i).at(i);
+        { //Solving for the x values and storing it in the xVect 
+            diag = coef.at(i).at(i); 
             sum = bVals.at(i);
             for (int j = 0; j < coef.at(i).size(); j++)
             {
@@ -294,7 +300,7 @@ void jacobiMethod(vector<vector<double>> coef, vector<double> bVals, vector<doub
             lsum1 += pow(xVect.at(i) - yVect.at(i), 2);
             lsum2 += pow(xVect.at(i), 2);
         }
-        l2 = sqrt(lsum1) / sqrt(lsum2);
+        l2 = sqrt(lsum1) / sqrt(lsum2); //Relative error of current iteration
 
         if (l2 < err)
         {
@@ -315,6 +321,8 @@ void jacobiMethod(vector<vector<double>> coef, vector<double> bVals, vector<doub
     cout << "Maximum iterations has been reached. Refer to iteration 50 for final result" << endl;
 }
 
+/*Alogrithm provided by the textbook. guassSeidel is very similar to jacobi's method, with the main difference being one of the inner for loops changed so that calculations
+use the new values immediately*/
 void gaussSeidel(vector<vector<double>> coef, vector<double> bVals, vector<double> startSolution, double err)
 {
     double sum = 0.0, diag;
@@ -325,14 +333,14 @@ void gaussSeidel(vector<vector<double>> coef, vector<double> bVals, vector<doubl
     {
         yVect = xVect; //yVect here will be used to remember what the xVect was in the previous iteration so we can calculate the l2.
         for (int i = 0; i < coef.size(); i++)
-        {
+        { //Solving for x and storing it in xVect
             diag = coef.at(i).at(i);
             sum = bVals.at(i);
             for (int j = 0; j < i; j++)
             {
                 sum -= coef.at(i).at(j) * xVect.at(j);
             }
-
+            //The for loops are seperated like this so that we can skip i (which was the diag)
             for (int j = i + 1; j < coef.at(i).size(); j++)
             {
                 sum -= coef.at(i).at(j) * xVect.at(j);
@@ -348,7 +356,7 @@ void gaussSeidel(vector<vector<double>> coef, vector<double> bVals, vector<doubl
             lsum1 += pow(xVect.at(i) - yVect.at(i), 2);
             lsum2 += pow(xVect.at(i), 2);
         }
-        l2 = sqrt(lsum1) / sqrt(lsum2);
+        l2 = sqrt(lsum1) / sqrt(lsum2); //Relative error of this iteration
 
         if (l2 < err)
         {
